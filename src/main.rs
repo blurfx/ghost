@@ -6,14 +6,19 @@ mod config;
 mod cache;
 mod util;
 
-use std::io::{stdin, stdout, Write};
+use std::{io::{stdin, stdout, Write}};
+use futures::future;
 
 use github::get_starred_repos;
 use skim::prelude::*;
 
-async fn async_repo_pusher(config: config::Config, tx: SkimItemSender) {
+async fn async_repo_pusher(cache: Vec<github::Repo>, config: config::Config, tx: SkimItemSender) {
     let mut page = 1;
     let mut all_repo: Vec<github::Repo> = vec![];
+    let mut ids = future::try_join_all(cache.iter().map(| item | item.get_id()))
+        .await
+        .unwrap();
+    ids.sort();
 
     loop {
         let fetch_result = get_starred_repos(&config.username, &config.token, page).await;
@@ -30,7 +35,9 @@ async fn async_repo_pusher(config: config::Config, tx: SkimItemSender) {
         }
 
         for repo in repos {
-            tx.send(Arc::new(repo)).unwrap_or_default();
+            if ids.binary_search(&repo.id).is_err() {
+                tx.send(Arc::new(repo)).unwrap_or_default();
+            }
         }
 
         page += 1;
@@ -90,12 +97,14 @@ pub async fn main() {
 
     let (tx, rx): (SkimItemSender, SkimItemReceiver) = unbounded();
     
-    if cache.timestamp == 0 {
-        tokio::spawn(async_repo_pusher(config, tx.clone()));
-    } else {
-        for repo in cache.data {
-            tx.send(Arc::new(repo)).unwrap_or_default();
-        }
+    let current_timestamp = util::get_timestamp();
+
+    if current_timestamp - cache.timestamp >= 3600 {
+        tokio::spawn(async_repo_pusher(cache.data.clone(), config, tx.clone()));
+    }
+
+    for repo in cache.data {
+        tx.send(Arc::new(repo)).unwrap_or_default();
     }
     
     let selected_items = Skim::run_with(&options, Some(rx))

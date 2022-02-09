@@ -1,4 +1,4 @@
-use std::{path::PathBuf, fs};
+use std::{path::PathBuf, fs, time::{SystemTime, UNIX_EPOCH}};
 
 use dirs::home_dir;
 
@@ -18,4 +18,11 @@ pub fn get_config_dir() -> PathBuf {
     }
 
     config_path
+}
+
+pub fn get_timestamp() -> u64 {
+    match SystemTime::now().duration_since(UNIX_EPOCH) {
+        Ok(n) => return n.as_secs(),
+        Err(_) => panic!("System time is before unix epoch"),
+    }
 }

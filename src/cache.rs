@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::{Write, Read};
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Serialize, Deserialize};
 
@@ -14,13 +13,6 @@ const CACHE_FILE_NAME: &str = "cache.json";
 pub struct Cache {
     pub timestamp: u64,
     pub data: Vec<github::Repo>,
-}
-
-fn get_timestamp() -> u64 {
-    match SystemTime::now().duration_since(UNIX_EPOCH) {
-        Ok(n) => return n.as_secs(),
-        Err(_) => panic!("System time is before unix epoch"),
-    }
 }
 
 pub fn get_filepath() -> PathBuf {
@@ -52,7 +44,7 @@ fn write_cache(path: PathBuf, data: Cache) {
 
 pub fn write(data: Vec<github::Repo>) {
     let cache = Cache {
-        timestamp: get_timestamp(),
+        timestamp: util::get_timestamp(),
         data,
     };
 

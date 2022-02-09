@@ -33,6 +33,12 @@ pub struct Repo {
     pub visibility: String,
 }
 
+impl Repo {
+    pub async fn get_id(&self) -> Result<i64, Error> {
+        Ok(self.id)
+    }
+}
+
 impl SkimItem for Repo {
     fn text(&self) -> Cow<str> {
         let description = self.description.clone().unwrap_or("".to_string());
