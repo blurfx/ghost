@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use reqwest::{Error, header::{USER_AGENT, AUTHORIZATION}};
 use skim::SkimItem;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Repo {
     pub id: i64,
     pub name: String,
@@ -60,7 +60,7 @@ impl SkimItem for Repo {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Owner {
     pub login: String,
     pub id: i64,

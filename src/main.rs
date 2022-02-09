@@ -3,14 +3,17 @@ extern crate tokio;
 
 mod github;
 mod config;
+mod cache;
 
-use std::{io::{stdin, stdout, Write}};
+use std::io::{stdin, stdout, Write};
 
 use github::get_starred_repos;
 use skim::prelude::*;
 
 async fn async_repo_pusher(config: config::Config, tx: SkimItemSender) {
     let mut page = 1;
+    let mut all_repo: Vec<github::Repo> = vec![];
+
     loop {
         let fetch_result = get_starred_repos(&config.username, &config.token, page).await;
 
@@ -20,7 +23,7 @@ async fn async_repo_pusher(config: config::Config, tx: SkimItemSender) {
         }
     
         let repos = fetch_result.ok().unwrap();
-
+        all_repo.append(&mut repos.clone());
         if repos.len() == 0 {
             break;
         }
@@ -31,6 +34,8 @@ async fn async_repo_pusher(config: config::Config, tx: SkimItemSender) {
 
         page += 1;
     }
+
+    cache::write(all_repo);
 }
 
 
@@ -55,14 +60,26 @@ fn get_username_and_access_token() -> config::Config {
 
 #[tokio::main]
 pub async fn main() {
-    let config_path = config::get_filepath();
+    let config = config::read();
 
-    if !config_path.as_path().exists() {
-        let config = get_username_and_access_token();
-        config::write(config_path.clone(), config);
-    }
+    let config = match config {
+        Some(config) => config,
+        None => {
+            let config = get_username_and_access_token();
+            config::write(config.clone());
+            config
+        }
+    };
 
-    let config = config::read(config_path);
+    let cache = cache::read();
+
+    let cache = match cache {
+        Some(c) => c,
+        None => cache::Cache {
+            timestamp: 0,
+            data: vec!(),
+        }
+    };
 
     let options = SkimOptionsBuilder::default()
         .height(Some("100%"))
@@ -71,13 +88,20 @@ pub async fn main() {
         .unwrap();
 
     let (tx, rx): (SkimItemSender, SkimItemReceiver) = unbounded();
-    tokio::spawn(async_repo_pusher(config, tx.clone()));
+    
+    if cache.timestamp == 0 {
+        tokio::spawn(async_repo_pusher(config, tx.clone()));
+    } else {
+        for repo in cache.data {
+            tx.send(Arc::new(repo)).unwrap_or_default();
+        }
+    }
     
     let selected_items = Skim::run_with(&options, Some(rx))
         .map(|out| out.selected_items)
         .unwrap_or_else(|| Vec::new());
 
     for item in selected_items.iter() {
-        print!("{}\n", item.output());
+        print!("{}", item.output());
     }
 }
