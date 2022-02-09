@@ -1,6 +1,7 @@
-use std::{fs::{File, self}, path::{PathBuf}, io::{Write, Read}};
+use std::{fs::{File}, path::{PathBuf}, io::{Write, Read}};
 use serde::{Serialize, Deserialize};
-use dirs::home_dir;
+
+use crate::util;
 
 const CONFIG_FILE_NAME: &str = "config.json";
 
@@ -10,25 +11,8 @@ pub struct Config {
     pub username: String,
 }
 
-pub fn get_dir() -> PathBuf {
-    let mut config_path = match home_dir() {
-        Some(path) => path,
-        None => {
-            panic!("Could not find home directory");
-        }
-    };
-
-    config_path.push(".ghost/");
-
-    if fs::create_dir_all(&config_path).is_err() {
-        panic!("Failed to create config directory");
-    }
-
-    config_path
-}
-
 pub fn get_filepath() -> PathBuf {
-    let mut config_path = get_dir();
+    let mut config_path = util::get_config_dir();
     config_path.push(CONFIG_FILE_NAME);
     config_path
 }

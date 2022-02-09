@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Serialize, Deserialize};
 
-use crate::{config, github};
+use crate::{util, github};
 
 const CACHE_FILE_NAME: &str = "cache.json";
 
@@ -24,7 +24,7 @@ fn get_timestamp() -> u64 {
 }
 
 pub fn get_filepath() -> PathBuf {
-    let mut config_path = config::get_dir();
+    let mut config_path = util::get_config_dir();
     config_path.push(CACHE_FILE_NAME);
     config_path
 }

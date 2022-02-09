@@ -4,6 +4,7 @@ extern crate tokio;
 mod github;
 mod config;
 mod cache;
+mod util;
 
 use std::io::{stdin, stdout, Write};
 
