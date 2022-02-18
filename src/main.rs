@@ -1,3 +1,4 @@
+extern crate clap;
 extern crate skim;
 extern crate tokio;
 
@@ -9,8 +10,19 @@ mod util;
 use std::{io::{stdin, stdout, Write}};
 use futures::future;
 
+use clap::Parser;
 use github::get_starred_repos;
 use skim::prelude::*;
+
+
+#[derive(Debug, Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// Name of the person to greet
+    #[clap(long)]
+    sync: bool,
+}
+
 
 async fn async_repo_pusher(cache: Vec<github::Repo>, config: config::Config, tx: SkimItemSender) {
     let mut page = 1;
@@ -68,6 +80,8 @@ fn get_username_and_access_token() -> config::Config {
 
 #[tokio::main]
 pub async fn main() {
+    let args = Args::parse();
+
     let config = config::read();
 
     let config = match config {
@@ -81,14 +95,6 @@ pub async fn main() {
 
     let cache = cache::read();
 
-    let cache = match cache {
-        Some(c) => c,
-        None => cache::Cache {
-            timestamp: 0,
-            data: vec!(),
-        }
-    };
-
     let options = SkimOptionsBuilder::default()
         .height(Some("100%"))
         .multi(false)
@@ -96,16 +102,15 @@ pub async fn main() {
         .unwrap();
 
     let (tx, rx): (SkimItemSender, SkimItemReceiver) = unbounded();
+
+    if cache.is_none() || args.sync {
+        tokio::spawn(async_repo_pusher(vec![], config, tx.clone()));
+    } else {
+        for repo in cache.unwrap().data {
+            tx.send(Arc::new(repo)).unwrap_or_default();
+        }
+    }
     
-    let current_timestamp = util::get_timestamp();
-
-    if current_timestamp - cache.timestamp >= 3600 {
-        tokio::spawn(async_repo_pusher(cache.data.clone(), config, tx.clone()));
-    }
-
-    for repo in cache.data {
-        tx.send(Arc::new(repo)).unwrap_or_default();
-    }
     
     let selected_items = Skim::run_with(&options, Some(rx))
         .map(|out| out.selected_items)
