@@ -1,7 +1,10 @@
-use std::{path::PathBuf, fs, time::{SystemTime, UNIX_EPOCH}};
+use std::{
+    fs,
+    path::PathBuf,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use dirs::home_dir;
-
 
 pub fn get_config_dir() -> PathBuf {
     let mut config_path = match home_dir() {

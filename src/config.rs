@@ -1,5 +1,9 @@
-use std::{fs::{File}, path::{PathBuf}, io::{Write, Read}};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::{
+    fs::File,
+    io::{Read, Write},
+    path::PathBuf,
+};
 
 use crate::util;
 

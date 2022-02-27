@@ -1,10 +1,13 @@
-extern crate serde_json;
 extern crate serde;
+extern crate serde_json;
 
 use std::borrow::Cow;
 
+use reqwest::{
+    header::{AUTHORIZATION, USER_AGENT},
+    Error,
+};
 use serde::{Deserialize, Serialize};
-use reqwest::{Error, header::{USER_AGENT, AUTHORIZATION}};
 use skim::SkimItem;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,7 +52,10 @@ impl SkimItem for Repo {
     fn display<'a>(&'a self, _: skim::DisplayContext<'a>) -> skim::AnsiString<'a> {
         let description = self.description.clone().unwrap_or("".to_string());
         let language = self.language.clone().unwrap_or("No Language".to_string());
-        let display_text = format!("[{}] {} by {}: {}", language, self.name, self.owner.login, description);
+        let display_text = format!(
+            "[{}] {} by {}: {}",
+            language, self.name, self.owner.login, description
+        );
         skim::AnsiString::from(display_text)
     }
 
@@ -73,7 +79,10 @@ pub struct Owner {
 }
 
 pub async fn get_starred_repos(username: &str, token: &str, page: i32) -> Result<Vec<Repo>, Error> {
-    let url = format!("https://api.github.com/users/{}/starred?per_page=100&page={}", username, page);
+    let url = format!(
+        "https://api.github.com/users/{}/starred?per_page=100&page={}",
+        username, page
+    );
     let client = reqwest::Client::new();
     let response = client
         .get(&url)
@@ -81,7 +90,7 @@ pub async fn get_starred_repos(username: &str, token: &str, page: i32) -> Result
         .header(USER_AGENT, "blurfx/ghost")
         .send()
         .await?;
-    
+
     let repos: Vec<Repo> = response.json().await?;
 
     Ok(repos)

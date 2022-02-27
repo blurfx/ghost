@@ -1,13 +1,12 @@
 use std::fs::File;
-use std::io::{Write, Read};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{util, github};
+use crate::{github, util};
 
 const CACHE_FILE_NAME: &str = "cache.json";
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Cache {
